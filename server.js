@@ -4,11 +4,11 @@ const cors = require('cors');
 
 const app = express();
 
-// Habilitar CORS
-app.use(cors());
+// Habilite CORS para todas as origens explicitamente
+app.use(cors({ origin: '*' }));
+
 app.use(express.json());
 
-// Endpoint para listar Customer IDs
 app.post('/api/listCustomers', async (req, res) => {
   try {
     const { accessToken } = req.body;
@@ -30,7 +30,6 @@ app.post('/api/listCustomers', async (req, res) => {
   }
 });
 
-// Endpoint para buscar métricas
 app.post('/api/getMetrics', async (req, res) => {
   try {
     const { accessToken, customerId } = req.body;
@@ -63,7 +62,7 @@ app.post('/api/getMetrics', async (req, res) => {
   }
 });
 
-// Use a porta definida pelo Railway e escute em 0.0.0.0
+// Escute na porta definida pelo Railway e em 0.0.0.0
 const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Proxy server running on port ${port}`);
