@@ -4,8 +4,9 @@ const cors = require('cors');
 
 const app = express();
 
-// Habilite CORS para todas as origens explicitamente
+// Habilite CORS para todas as origens e trate requisições preflight
 app.use(cors({ origin: '*' }));
+app.options('*', cors());
 
 app.use(express.json());
 
@@ -62,7 +63,6 @@ app.post('/api/getMetrics', async (req, res) => {
   }
 });
 
-// Escute na porta definida pelo Railway e em 0.0.0.0
 const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Proxy server running on port ${port}`);
