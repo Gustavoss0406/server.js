@@ -11,12 +11,17 @@ app.post('/listAccessibleCustomers', async (req, res) => {
   try {
     const { accessToken, developerToken } = req.body;
     const url = 'https://googleads.googleapis.com/v10/customers:listAccessibleCustomers';
+
+    // POST, não GET
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'developer-token': developerToken,
+        'Content-Type': 'application/json'
       },
+      // Body vazio ou {}
+      body: JSON.stringify({})
     });
 
     const data = await response.json();
@@ -26,9 +31,4 @@ app.post('/listAccessibleCustomers', async (req, res) => {
     console.error('Erro ao listar customers:', error);
     res.status(500).json({ error: error.message });
   }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
 });
