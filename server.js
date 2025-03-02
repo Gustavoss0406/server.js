@@ -1,20 +1,20 @@
 /****************************************************
  * server.js
- * Ajustado para tratar método OPTIONS no Railway 
- * e permitir CORS adequadamente.
+ * Ajustado para exibir o conteúdo HTML de erro
+ * retornado pela Google Ads API quando não for JSON.
  ****************************************************/
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 
-// Se for MCC:
-const MANAGER_ACCOUNT_ID = '9201538227';
+// Se for MCC (Manager Account):
+const MANAGER_ACCOUNT_ID = '9201538227'; // Substitua sem hifens
 
 const app = express();
 
-// Configuração de CORS avançada
+// Configuração de CORS avançada (se precisar de requests do front-end)
 app.use(cors({
-  origin: '*',               // ou especifique seu domínio
+  origin: '*',
   methods: ['GET','POST','OPTIONS'],
   allowedHeaders: [
     'Content-Type',
@@ -34,34 +34,56 @@ app.options('*', (req, res) => {
 });
 
 /****************************************************
- * /listAccessibleCustomers
+ * Rota de teste: /ping
+ ****************************************************/
+app.get('/ping', (req, res) => {
+  res.json({ message: 'pong' });
+});
+
+/****************************************************
+ * /listAccessibleCustomers (GET para Google Ads)
  ****************************************************/
 app.post('/listAccessibleCustomers', async (req, res) => {
   try {
     const { accessToken, developerToken } = req.body;
     const url = 'https://googleads.googleapis.com/v10/customers:listAccessibleCustomers';
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'developer-token': developerToken,
-        'login-customer-id': MANAGER_ACCOUNT_ID, // se for MCC
-        'Accept': 'application/json'
-      }
+        'login-customer-id': MANAGER_ACCOUNT_ID,
+        'Accept': 'application/json',
+      },
     });
 
-    const data = await response.json();
-    res.json(data);
+    // Ao invés de tentar diretamente "await response.json()", pegamos como texto:
+    const rawText = await response.text();
+
+    console.log('Resposta bruta da Google Ads (listAccessibleCustomers):\n', rawText);
+
+    // Tenta converter o texto em JSON
+    try {
+      const data = JSON.parse(rawText);
+      return res.json(data);
+    } catch (parseError) {
+      // Se falhar, enviamos a resposta bruta para debug
+      console.error('Falha ao interpretar JSON (listAccessibleCustomers):', parseError);
+      return res.status(500).json({
+        error: 'Falha ao interpretar JSON',
+        rawResponse: rawText
+      });
+    }
 
   } catch (error) {
     console.error('Erro ao listar customers:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 /****************************************************
- * /getCampaignMetrics
+ * /getCampaignMetrics (POST para Google Ads)
  ****************************************************/
 app.post('/getCampaignMetrics', async (req, res) => {
   try {
@@ -95,17 +117,31 @@ app.post('/getCampaignMetrics', async (req, res) => {
       body: JSON.stringify({ query: gaqlQuery.trim() })
     });
 
-    const data = await response.json();
-    res.json(data);
+    // Pega a resposta como texto para debug
+    const rawText = await response.text();
+
+    console.log('Resposta bruta da Google Ads (getCampaignMetrics):\n', rawText);
+
+    // Tenta converter em JSON
+    try {
+      const data = JSON.parse(rawText);
+      return res.json(data);
+    } catch (parseError) {
+      console.error('Falha ao interpretar JSON (getCampaignMetrics):', parseError);
+      return res.status(500).json({
+        error: 'Falha ao interpretar JSON',
+        rawResponse: rawText
+      });
+    }
 
   } catch (error) {
     console.error('Erro ao obter métricas:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 /****************************************************
- * Inicializa na porta dinâmica do Railway
+ * Inicializa na porta dinâmica
  ****************************************************/
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
