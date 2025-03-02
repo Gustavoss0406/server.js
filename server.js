@@ -7,16 +7,17 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Substitua pelo ID da sua conta Manager (sem hifens), por exemplo: 9201538227
+// Se for uma conta Manager (MCC), defina o ID sem hifens.
+// Exemplo: "9201538227"
 const MANAGER_ACCOUNT_ID = '9201538227';
 
-// Endpoint para listar os Customer IDs acessíveis
+// Exemplo de rota para listar os Customer IDs acessíveis
 app.post('/listAccessibleCustomers', async (req, res) => {
   try {
     const { accessToken, developerToken } = req.body;
     
     const url = 'https://googleads.googleapis.com/v10/customers:listAccessibleCustomers';
-    
+
     // Faz a requisição GET para a Google Ads API (conta gerente)
     const response = await fetch(url, {
       method: 'GET',
@@ -28,10 +29,7 @@ app.post('/listAccessibleCustomers', async (req, res) => {
       },
     });
 
-    // Converte a resposta para JSON
     const data = await response.json();
-    
-    // Retorna o JSON ao FlutterFlow
     res.json(data);
 
   } catch (error) {
@@ -40,8 +38,8 @@ app.post('/listAccessibleCustomers', async (req, res) => {
   }
 });
 
-// Porta para o Railway
+// Use process.env.PORT para que o Railway atribua a porta correta
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
