@@ -63,6 +63,12 @@ app.post('/listAccessibleCustomers', async (req, res) => {
 /****************************************************
  * /getCampaignMetrics
  ****************************************************/
+
+app.get('/ping', (req, res) => {
+  res.json({ message: 'pong' });
+});
+
+
 app.post('/getCampaignMetrics', async (req, res) => {
   try {
     const { accessToken, developerToken, customerId } = req.body;
