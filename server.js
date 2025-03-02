@@ -1,52 +1,57 @@
 /****************************************************
  * server.js
- * Configuração mínima para funcionar no Railway
- * com Google Ads API (conta Manager).
+ * Ajustado para tratar método OPTIONS no Railway 
+ * e permitir CORS adequadamente.
  ****************************************************/
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 
-// Insira aqui o ID da sua conta Manager (MCC), sem hifens.
-// Exemplo se no painel aparece 920-153-8227, use '9201538227'.
+// Se for MCC:
 const MANAGER_ACCOUNT_ID = '9201538227';
 
-// Cria a aplicação Express
 const app = express();
 
-// Middlewares básicos
-app.use(express.json());   // Aceitar JSON no corpo
-app.use(cors());           // Liberar CORS para qualquer origem
+// Configuração de CORS avançada
+app.use(cors({
+  origin: '*',               // ou especifique seu domínio
+  methods: ['GET','POST','OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'developer-token',
+    'login-customer-id',
+    'Accept'
+  ]
+}));
+
+// Faz o Express entender JSON
+app.use(express.json());
+
+// Handler para OPTIONS em todas as rotas (preflight)
+app.options('*', (req, res) => {
+  res.sendStatus(200);
+});
 
 /****************************************************
- * Rota: /listAccessibleCustomers
- * - Recebe accessToken e developerToken no JSON body
- * - Faz GET na Google Ads API para listar as contas
+ * /listAccessibleCustomers
  ****************************************************/
 app.post('/listAccessibleCustomers', async (req, res) => {
   try {
     const { accessToken, developerToken } = req.body;
-
-    // Endpoint oficial para listar contas
     const url = 'https://googleads.googleapis.com/v10/customers:listAccessibleCustomers';
-
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        // Token de OAuth
         'Authorization': `Bearer ${accessToken}`,
-        // Seu Developer Token (precisa estar aprovado ou em teste adequado)
         'developer-token': developerToken,
-        // Conta Manager (MCC) sem hifens
-        'login-customer-id': MANAGER_ACCOUNT_ID,
+        'login-customer-id': MANAGER_ACCOUNT_ID, // se for MCC
         'Accept': 'application/json'
       }
     });
 
-    // Decodifica a resposta
     const data = await response.json();
-
-    // Retorna o JSON ao cliente (FlutterFlow, Postman, etc.)
     res.json(data);
 
   } catch (error) {
@@ -56,18 +61,13 @@ app.post('/listAccessibleCustomers', async (req, res) => {
 });
 
 /****************************************************
- * Rota: /getCampaignMetrics
- * - Recebe accessToken, developerToken, customerId
- * - Faz POST na Google Ads API para obter métricas
+ * /getCampaignMetrics
  ****************************************************/
 app.post('/getCampaignMetrics', async (req, res) => {
   try {
     const { accessToken, developerToken, customerId } = req.body;
-
-    // Endpoint que faz queries GAQL
     const url = `https://googleads.googleapis.com/v10/customers/${customerId}/googleAds:search`;
 
-    // Exemplo de query GAQL para campanhas ativas
     const gaqlQuery = `
       SELECT
         campaign.id,
@@ -88,18 +88,14 @@ app.post('/getCampaignMetrics', async (req, res) => {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'developer-token': developerToken,
-        'login-customer-id': MANAGER_ACCOUNT_ID, // MCC
+        'login-customer-id': MANAGER_ACCOUNT_ID,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      // Corpo com a query em JSON
       body: JSON.stringify({ query: gaqlQuery.trim() })
     });
 
-    // Decodifica a resposta
     const data = await response.json();
-
-    // Retorna o JSON ao cliente
     res.json(data);
 
   } catch (error) {
@@ -109,11 +105,9 @@ app.post('/getCampaignMetrics', async (req, res) => {
 });
 
 /****************************************************
- * Inicializa o servidor na porta definida pelo Railway
+ * Inicializa na porta dinâmica do Railway
  ****************************************************/
 const PORT = process.env.PORT || 3000;
-
-// Use '0.0.0.0' para escutar em todas as interfaces no Railway
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
