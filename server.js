@@ -1,18 +1,18 @@
 /****************************************************
  * server.js
- * Ajustado para exibir o conteúdo HTML de erro
- * retornado pela Google Ads API quando não for JSON.
+ * Ajustado para usar v14 da Google Ads API
+ * e exibir possíveis conteúdos HTML de erro.
  ****************************************************/
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 
 // Se for MCC (Manager Account):
-const MANAGER_ACCOUNT_ID = '9201538227'; // Substitua sem hifens
+const MANAGER_ACCOUNT_ID = '9201538227'; // Ajuste sem hifens
 
 const app = express();
 
-// Configuração de CORS avançada (se precisar de requests do front-end)
+// Configuração de CORS (se precisar de requests do front-end)
 app.use(cors({
   origin: '*',
   methods: ['GET','POST','OPTIONS'],
@@ -41,12 +41,12 @@ app.get('/ping', (req, res) => {
 });
 
 /****************************************************
- * /listAccessibleCustomers (GET para Google Ads)
+ * /listAccessibleCustomers (GET para Google Ads v14)
  ****************************************************/
 app.post('/listAccessibleCustomers', async (req, res) => {
   try {
     const { accessToken, developerToken } = req.body;
-    const url = 'https://googleads.googleapis.com/v10/customers:listAccessibleCustomers';
+    const url = 'https://googleads.googleapis.com/v14/customers:listAccessibleCustomers';
 
     const response = await fetch(url, {
       method: 'GET',
@@ -58,17 +58,15 @@ app.post('/listAccessibleCustomers', async (req, res) => {
       },
     });
 
-    // Ao invés de tentar diretamente "await response.json()", pegamos como texto:
+    // Ao invés de response.json(), pegamos como texto para debug
     const rawText = await response.text();
+    console.log('Resposta bruta (listAccessibleCustomers) v14:\n', rawText);
 
-    console.log('Resposta bruta da Google Ads (listAccessibleCustomers):\n', rawText);
-
-    // Tenta converter o texto em JSON
+    // Tenta converter em JSON
     try {
       const data = JSON.parse(rawText);
       return res.json(data);
     } catch (parseError) {
-      // Se falhar, enviamos a resposta bruta para debug
       console.error('Falha ao interpretar JSON (listAccessibleCustomers):', parseError);
       return res.status(500).json({
         error: 'Falha ao interpretar JSON',
@@ -83,12 +81,12 @@ app.post('/listAccessibleCustomers', async (req, res) => {
 });
 
 /****************************************************
- * /getCampaignMetrics (POST para Google Ads)
+ * /getCampaignMetrics (POST para Google Ads v14)
  ****************************************************/
 app.post('/getCampaignMetrics', async (req, res) => {
   try {
     const { accessToken, developerToken, customerId } = req.body;
-    const url = `https://googleads.googleapis.com/v10/customers/${customerId}/googleAds:search`;
+    const url = `https://googleads.googleapis.com/v14/customers/${customerId}/googleAds:search`;
 
     const gaqlQuery = `
       SELECT
@@ -119,8 +117,7 @@ app.post('/getCampaignMetrics', async (req, res) => {
 
     // Pega a resposta como texto para debug
     const rawText = await response.text();
-
-    console.log('Resposta bruta da Google Ads (getCampaignMetrics):\n', rawText);
+    console.log('Resposta bruta (getCampaignMetrics) v14:\n', rawText);
 
     // Tenta converter em JSON
     try {
